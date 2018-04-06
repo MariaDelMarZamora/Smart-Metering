@@ -12,11 +12,25 @@ gs_ws_ls(GS)
 ews <- gs_read(ss = GS, ws = "Econ Literature")
 pws <- gs_read(ss = GS, ws = "Psych Literature")
 
-# combine
-df <- full_join(ews, pws)
-
-
-#   west <- gs_read(ss=be, ws = "Westminster voting intentions", skip=1)
+combine
+# df <- full_join(ews, pws)
 # 
-# # convert to data.frame
-# wdf <- as.data.frame(west)
+# df <- df %>% separate(col = `Author & Year`, into = c("Author", "Year"), sep = "\\(") %>%
+#   mutate(Year = gsub("\\)", "", Year),
+#          AUshort = sub("([A-Za-z]+).*", "\\1", Author))
+
+#
+pws <- pws %>% separate(col = `Author & Year`, into = c("Author", "Year"), sep = "\\(") %>%
+  mutate(Year = gsub("\\)", "", Year),
+         AUshort = sub("([A-Za-z]+).*", "\\1", Author))
+
+# generate individual strings
+  # WoS - pattern (TI=("title") AND AU=("Abdalla") AND PY=(2015))
+  # Scopus - pattern (TITLE("") AND AUTH("Abdalla") AND PUBYEAR IS 2015 )
+
+pws <- pws %>% 
+  mutate(WoS = paste('(TI = ("', Title, '") AND AU=("', AUshort, '" AND PY=("', Year, ')', sep = ""),
+         Scopus = paste('(TITLE("', Title, '" AND AUTH=("', AUshort,'" AND PUBYEAR IS "', Year, ')', sep = ""))
+
+
+#combine strings
