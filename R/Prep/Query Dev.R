@@ -20,15 +20,16 @@ combine
 #          AUshort = sub("([A-Za-z]+).*", "\\1", Author))
 
 #
-pws <- pws %>% separate(col = `Author & Year`, into = c("Author", "Year"), sep = "\\(") %>%
+ews <- ews %>% separate(col = `Author & Year`, into = c("Author", "Year"), sep = "\\(") %>%
   mutate(Year = gsub("\\)", "", Year),
-         AUshort = sub("([A-Za-z]+).*", "\\1", Author))
+         AUshort = sub("([A-Za-z]+).*", "\\1", Author)) %>% 
+  filter(!is.na(Title))
 
 # generate individual strings
   # WoS - pattern (TI=("title") AND AU=("Abdalla") AND PY=(2015))
   # Scopus - pattern (TITLE("") AND AUTH("Abdalla") AND PUBYEAR IS 2015 ))
 
-pws <- pws %>% 
+ews <- ews %>% 
   mutate(WoS = paste('(TI = ("', Title, '") AND AU=("', AUshort, '") AND PY=(', Year, '))', sep = ""),
          Scopus = paste('(TITLE("', Title, '") AND AUTH("', AUshort,'") AND PUBYEAR IS ', Year, ')', sep = ""))
 
@@ -38,8 +39,9 @@ searchStrings <- data.frame(database = c("WoS", "Scopus"),
 
 
 #combine strings
-searchStrings$query[searchStrings$database== "WoS"] <- paste0(pws$WoS, collapse = ' OR ')
-searchStrings$query[searchStrings$database== "Scopus"] <- paste0(pws$Scopus, collapse = ' OR ')
+searchStrings$query[searchStrings$database== "WoS"] <- paste0(ews$WoS, collapse = ' OR ')
+searchStrings$query[searchStrings$database== "Scopus"] <- paste0(ews$Scopus, collapse = ' OR ')
 
-write.csv(searchStrings, file = "../Queries/strings.csv")
+write.csv(searchStrings, file = "../Queries/strings_ews.csv")
+
 
