@@ -1,3 +1,6 @@
+# Document folders
+/MethResources
+
 # History files
 .Rhistory
 .Rapp.history
