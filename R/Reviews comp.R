@@ -22,7 +22,8 @@ cols <- variable.names(df)[5:12]
 df <- df %>%
   mutate_each_(funs(factor(.)), cols) %>% 
   mutate(
-    reviews = "reviews"
+    reviews = "reviews",
+    rev_rowN = row_number()
   )
 
 # read in query results 
@@ -50,10 +51,44 @@ docs[is.na(docs$maybe) & docs$relevant==F,]$this_study <- "cap_NOT_rel"
 table(docs$this_study, useNA = "always") #change below to include this study
 
 
-#match review DOIs to  query results 
+#####         Match review DOIs to  query results 
+
+df.rev <- df %>% select(AU, TI, PY) %>% 
+  mutate(
+    TI.fuzz = ""
+  )
+
+df.query <- docs %>% select(TI, PY)
+
+fuzzy_compare <- function(p,x,max.distance, value = T, ignore.case = T) {
+  matches = agrep(p,x,max.distance, ignore.case = ignore.case, value = value)
+  print(matches)
+  return(matches[1])
+}
+
+ 
+# l1 = data.frame(title=c("the quick brown fox","lorem ipsum dolor"))
+# l2 = data.frame(title=c("the quicke brown fox","lorem ipsum dollar"))
+
+#l1$fuzzy.title = sapply(l1$title,fuzzy_compare,l2$title,0.1)
+
+df.rev$TI.fuzz <- sapply(df.rev$TI, 
+                         fuzzy_compare,
+                         df.query$TI,
+                         max.distance = 0.1,
+                         value = T,
+                         ignore.case = T)
+df.rev <- df.rev %>% 
+  mutate(
+    TI.fuzz <- as.character(TI.fuzz)
+  )
+
+
+
     #resulting df has only the 147 docs sourced from reviews
 df_matched <- left_join(df, docs, by = "DOI") %>% 
-  select(AU.x, DOI, TI.x, TI.y, PY.x, Karlin:Abrahamse_, -ACEEE, this_study, reviews, relevant, maybe, query) #adjust col name as reviews are added
+  #left_join(df, docs, by = "TI.fuzz" = "TI)
+  select(AU.x, DOI, TI.x, TI.y, PY.x, Karlin:Abrahamse_, -ACEEE, this_study, reviews, relevant, maybe, query,rev_rowN) #adjust col name as reviews are added
 
 table(df_matched$relevant)
 
@@ -74,7 +109,7 @@ poss_Rel <- docs %>%
 
 
 df_matched <- full_join(df_matched, poss_Rel, by = c("DOI" = "DOI", "relevant" = "relevant", "maybe" = "maybe", "query" = "query", "PY.x" = "PY", "this_study" = "this_study")) %>% 
-  select(AU.x, AU, DOI, TI.x, TI.y, TI, PY.x, Karlin:Abrahamse_, this_study, reviews, relevant, maybe, query)
+  select(AU.x, AU, DOI, TI.x, TI.y, TI, PY.x, Karlin:Abrahamse_, this_study, reviews, relevant, maybe, query, rev_rowN)
 
 # Reconciliating TI and AU fields
 df_matched <- df_matched %>%
@@ -87,7 +122,7 @@ df_matched$TI.x[is.na(df_matched$TI.x)] <- df_matched$TI[is.na(df_matched$TI.x)]
 df_matched$TI.x[is.na(df_matched$TI.x)] <- df_matched$TI.y[is.na(df_matched$TI.x)]
 
 df_matched <- df_matched %>% 
-  select(AU.x, TI.x, PY.x, DOI, Karlin:query) %>% 
+  select(AU.x, TI.x, PY.x, DOI, Karlin:rev_rowN) %>% 
   arrange(PY.x)
 
 
@@ -112,10 +147,49 @@ df_matched <- df_matched %>%
 df_matched[is.na(df_matched$Included),]$text <- ""
 
 
-#Plots
+###### Plots
 ggplot(df_matched, aes(x = paper_row, y = Review))+
   geom_tile(aes(fill = Included))+
   geom_text(aes(label = text))
 
+ggplot(df_matched, aes(x = paper_row, y = Review)) +
+  geom_point(aes(shape = Included, color = Included))+
+  scale_shape_manual(values = c(0:2,4))+
+  xlim(0,435)
+  
+ggplot(df_matched, aes(x = AU.x, y = Review)) +
+  geom_point(aes(shape = Included, color = Included))+
+  scale_shape_manual(values = c(0:2,4))+
+  theme(axis.text.x = element_text(angle = 45, vjust = 0.5, hjust=1))
+
+# Just the ones captured by the reviews
+df_matched <- df_matched %>% 
+  filter(reviews == "reviews")
 
 
+ggplot(df_matched, aes(x = paper_row, y = Review))+
+  geom_tile(aes(fill = Included))+
+  geom_text(aes(label = text))
+
+ggplot(df_matched, aes(x = rev_rowN, y = Review))+
+  geom_tile(aes(fill = Included))+
+  geom_text(aes(label = text))
+
+ggplot(df_matched, aes(x = AU.x, y = Review))+
+  geom_tile(aes(fill = Included))+
+  geom_text(aes(label = text))
+
+ggplot(df_matched, aes(x = paper_row, y = Review)) +
+  geom_point(aes(shape = Included, color = Included))+
+  scale_shape_manual(values = c(0:2,4))
+
+ggplot(df_matched, aes(x = rev_rowN, y = Review)) +
+  geom_point(aes(shape = Included, color = Included))+
+  scale_shape_manual(values = c(0:2,4))+
+    xlim(0,147)
+
+
+ggplot(df_matched, aes(x = AU.x, y = Review)) +
+  geom_point(aes(shape = Included, color = Included))+
+  scale_shape_manual(values = c(0:2,4))+
+  theme(axis.text.x = element_text(angle = 45, vjust = 0.5, hjust=1))
