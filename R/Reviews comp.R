@@ -78,13 +78,10 @@ df.rev$TI.fuzz <- sapply(df.rev$TI,
                          max.distance = 0.1,
                          value = T,
                          ignore.case = T)
-df.rev <- df.rev %>% 
-  mutate(
-    TI.fuzz <- as.character(TI.fuzz)
-  )
 
+df.key <- df.rev %>%  select(TI, TI.fuzz)
 
-
+df2 <- left_join(df, df.key, by = "TI")
     #resulting df has only the 147 docs sourced from reviews
 df_matched <- left_join(df, docs, by = "DOI") %>% 
   #left_join(df, docs, by = "TI.fuzz" = "TI)
