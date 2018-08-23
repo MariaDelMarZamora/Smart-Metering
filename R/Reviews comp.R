@@ -38,13 +38,15 @@ docs <- docs %>%
   ) %>% 
   select(TI, PY, AU, relevant, DOI, maybe,query, this_study)
 
+docs[is.na(docs$maybe) & docs$relevant==F,]$this_study <- "cap_NOT_rel"
+
 table(docs$this_study, useNA = "always") #change below to include this study
 
 
 #match review DOIs to  query results 
     #resulting df has only the 147 docs sourced from reviews
 df_matched <- left_join(df, docs, by = "DOI") %>% 
-  select(AU.x, DOI, TI.x, TI.y, PY.x, Karlin:Abrahamse_, -ACEEE, reviews, relevant, maybe, query) #adjust col name as reviews are added
+  select(AU.x, DOI, TI.x, TI.y, PY.x, Karlin:Abrahamse_, -ACEEE, this_study, reviews, relevant, maybe, query) #adjust col name as reviews are added
 
 table(df_matched$relevant)
 
@@ -60,12 +62,12 @@ poss_Rel <- docs %>%
   filter((relevant == T & indx == 1) | 
            (relevant == T & indx == 2) |
            (maybe == "maybe" & max(indx) == 1 )) %>%
-  ungroup() %>% 
+  ungroup()
 
 
 
-df_matched <- full_join(df_matched, poss_Rel, by = c("DOI" = "DOI", "relevant" = "relevant", "maybe" = "maybe", "query" = "query", "PY.x" = "PY")) %>% 
-  select(AU.x, AU, DOI, TI.x, TI.y, TI, PY.x, Karlin:Abrahamse_, reviews, relevant, maybe, query, this_study)
+df_matched <- full_join(df_matched, poss_Rel, by = c("DOI" = "DOI", "relevant" = "relevant", "maybe" = "maybe", "query" = "query", "PY.x" = "PY", "this_study" = "this_study")) %>% 
+  select(AU.x, AU, DOI, TI.x, TI.y, TI, PY.x, Karlin:Abrahamse_, this_study, reviews, relevant, maybe, query)
 
 # Reconciliating TI and AU fields
 df_matched <- df_matched %>%
@@ -91,3 +93,4 @@ df_matchedt <- df_matched %>%
   )
 
 table(df_matchedt$this_study, useNA = "always") #check to see numbers match with Max
+
