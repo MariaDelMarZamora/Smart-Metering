@@ -11,12 +11,19 @@ cols <- variable.names(df)[5:12]
 # df[cols] <- lapply(df[cols], factor)
 
 #make into factor var
+# df <- df %>%
+#   mutate_each_(funs(factor(., levels = c("NA","x"), labels = c("No", "Yes"))), cols) %>% 
+#   mutate(
+#     reviews = "reviews"
+#   )
+
+#Maybe dont need to factor at all
+
 df <- df %>%
-  mutate_each_(funs(factor(., levels = c("NA","x"), labels = c("No", "Yes"))), cols) %>% 
+  mutate_each_(funs(factor(.)), cols) %>% 
   mutate(
     reviews = "reviews"
   )
-
 
 # read in query results 
 docs <- read_excel("Data/SM Q2801 R1353.xlsx") 
@@ -84,13 +91,31 @@ df_matched <- df_matched %>%
   arrange(PY.x)
 
 
-# reshape data
 
 #make paper row for plotting
-df_matchedt <- df_matched %>% 
+df_matched <- df_matched %>% 
   mutate(
     paper_row = row_number()
   )
 
-table(df_matchedt$this_study, useNA = "always") #check to see numbers match with Max
+table(df_matched$this_study, useNA = "always") #check to see numbers match with Max
+#Decide whether to keep NAs or switch to "not captured"
+
+# reshape data
+#first look at reviews
+
+df_matched <- df_matched %>% 
+  gather(key = Review, value = Included, Karlin:this_study) %>% 
+  mutate(Included = factor(Included),
+         text = "x")
+
+df_matched[is.na(df_matched$Included),]$text <- ""
+
+
+#Plots
+ggplot(df_matched, aes(x = paper_row, y = Review))+
+  geom_tile(aes(fill = Included))+
+  geom_text(aes(label = text))
+
+
 
