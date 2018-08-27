@@ -62,7 +62,6 @@ df.query <- docs %>% select(TI, PY)
 
 fuzzy_compare <- function(p,x,max.distance, value = T, ignore.case = T) {
   matches = agrep(p,x,max.distance, ignore.case = ignore.case, value = value)
-  print(matches)
   return(matches[1])
 }
 
@@ -83,11 +82,36 @@ df.key <- df.rev %>%  select(TI, TI.fuzz)
 
 df2 <- left_join(df, df.key, by = "TI")
     #resulting df has only the 147 docs sourced from reviews
-df_matched <- left_join(df, docs, by = "DOI") %>% 
-  #left_join(df, docs, by = "TI.fuzz" = "TI)
-  select(AU.x, DOI, TI.x, TI.y, PY.x, Karlin:Abrahamse_, -ACEEE, this_study, reviews, relevant, maybe, query,rev_rowN) #adjust col name as reviews are added
+df_matched <- left_join(df2, docs, by = "DOI") %>% 
+  select(AU.x, DOI, TI.x, TI.y, PY.x, Karlin:Abrahamse_, -ACEEE, this_study, reviews, relevant, maybe, query,rev_rowN, TI.fuzz) %>%  # adjust col name as reviews are added
+left_join(., docs, by = c("TI.fuzz" = "TI", "PY.x" = "PY")) %>% 
+  select(AU.x, AU, DOI.x, DOI.y, TI.x, TI.y, TI.fuzz, PY.x, this_study.x, this_study.y, relevant.x, relevant.y, maybe.x, maybe.y, query.x, query.y, rev_rowN,  Karlin:Abrahamse_)
 
-table(df_matched$relevant)
+# consolidate fields
+df_matched$TI.y[is.na(df_matched$TI.y)] <- df_matched$TI.fuzz[is.na(df_matched$TI.y)] #titles for checking - can drop later and keep TI.x
+df_matched$DOI.x[grep("^NA", df_matched$DOI.x)] <- df_matched$DOI.y[grep("^NA", df_matched$DOI.x)]
+df_matched$this_study.x[is.na(df_matched$this_study.x)] <- df_matched$this_study.y[is.na(df_matched$this_study.x)]
+df_matched$relevant.x[is.na(df_matched$relevant.x)] <- df_matched$relevant.y[is.na(df_matched$relevant.x)]
+df_matched$maybe.x[is.na(df_matched$maybe.x)] <- df_matched$maybe.y[is.na(df_matched$maybe.x)]
+df_matched$query.x[is.na(df_matched$query.x)] <- df_matched$query.y[is.na(df_matched$query.x)]
+
+# keep consolidated fields
+df_matched <- df_matched %>% 
+  select(AU.x, DOI.x, TI.x, PY.x, this_study.x, relevant.x, maybe.x, query.x,  Karlin:Abrahamse_, rev_rowN) 
+
+names(df_matched) <- gsub("\\.x$", "", names(df_matched))
+
+
+
+# variable.names(df_matched)
+
+table(df_matched$relevant, useNA = "always")
+
+
+
+# df_matched$AU.x[is.na(df_matched$AU.x)] <- df_matched$AU[is.na(df_matched$AU.x)]
+# df_matched$TI.x[is.na(df_matched$TI.x)] <- df_matched$TI[is.na(df_matched$TI.x)]
+# df_matched$TI.x[is.na(df_matched$TI.x)] <- df_matched$TI.y[is.na(df_matched$TI.x)]
 
 
 #getting those captured by query but not reviews
@@ -114,9 +138,7 @@ df_matched <- df_matched %>%
     AU = gsub(",.*", " et al", AU)
   )
 
-df_matched$AU.x[is.na(df_matched$AU.x)] <- df_matched$AU[is.na(df_matched$AU.x)]
-df_matched$TI.x[is.na(df_matched$TI.x)] <- df_matched$TI[is.na(df_matched$TI.x)]
-df_matched$TI.x[is.na(df_matched$TI.x)] <- df_matched$TI.y[is.na(df_matched$TI.x)]
+
 
 df_matched <- df_matched %>% 
   select(AU.x, TI.x, PY.x, DOI, Karlin:rev_rowN) %>% 
