@@ -85,7 +85,7 @@ df2 <- left_join(df, df.key, by = "TI")
 df_matched <- left_join(df2, docs, by = "DOI") %>% 
   select(AU.x, DOI, TI.x, TI.y, PY.x, Karlin:Abrahamse_, -ACEEE, this_study, reviews, relevant, maybe, query,rev_rowN, TI.fuzz) %>%  # adjust col name as reviews are added
 left_join(., docs, by = c("TI.fuzz" = "TI", "PY.x" = "PY")) %>% 
-  select(AU.x, AU, DOI.x, DOI.y, TI.x, TI.y, TI.fuzz, PY.x, this_study.x, this_study.y, relevant.x, relevant.y, maybe.x, maybe.y, query.x, query.y, rev_rowN,  Karlin:Abrahamse_)
+  select(AU.x, AU, DOI.x, DOI.y, TI.x, TI.y, TI.fuzz, PY.x, this_study.x, this_study.y, relevant.x, relevant.y, maybe.x, maybe.y, query.x, query.y, rev_rowN,  Karlin:Abrahamse_, reviews)
 
 # consolidate fields
 df_matched$TI.y[is.na(df_matched$TI.y)] <- df_matched$TI.fuzz[is.na(df_matched$TI.y)] #titles for checking - can drop later and keep TI.x
@@ -97,7 +97,7 @@ df_matched$query.x[is.na(df_matched$query.x)] <- df_matched$query.y[is.na(df_mat
 
 # keep consolidated fields
 df_matched <- df_matched %>% 
-  select(AU.x, DOI.x, TI.x, PY.x, this_study.x, relevant.x, maybe.x, query.x,  Karlin:Abrahamse_, rev_rowN) 
+  select(AU.x, DOI.x, TI.x, PY.x, this_study.x, relevant.x, maybe.x, query.x,  Karlin:Abrahamse_, rev_rowN, reviews) 
 
 names(df_matched) <- gsub("\\.x$", "", names(df_matched))
 
@@ -108,10 +108,6 @@ names(df_matched) <- gsub("\\.x$", "", names(df_matched))
 table(df_matched$relevant, useNA = "always")
 
 
-
-# df_matched$AU.x[is.na(df_matched$AU.x)] <- df_matched$AU[is.na(df_matched$AU.x)]
-# df_matched$TI.x[is.na(df_matched$TI.x)] <- df_matched$TI[is.na(df_matched$TI.x)]
-# df_matched$TI.x[is.na(df_matched$TI.x)] <- df_matched$TI.y[is.na(df_matched$TI.x)]
 
 
 #getting those captured by query but not reviews
@@ -129,20 +125,21 @@ poss_Rel <- docs %>%
 
 
 
-df_matched <- full_join(df_matched, poss_Rel, by = c("DOI" = "DOI", "relevant" = "relevant", "maybe" = "maybe", "query" = "query", "PY.x" = "PY", "this_study" = "this_study")) %>% 
-  select(AU.x, AU, DOI, TI.x, TI.y, TI, PY.x, Karlin:Abrahamse_, this_study, reviews, relevant, maybe, query, rev_rowN)
+df_matched <- full_join(df_matched, poss_Rel, by = c("DOI" = "DOI", "relevant" = "relevant", "maybe" = "maybe", "query" = "query", "PY" = "PY", "this_study" = "this_study")) %>% 
+  select(AU.x, AU.y, DOI, TI.x, TI.y, PY, this_study:rev_rowN, indx, reviews)
 
 # Reconciliating TI and AU fields
 df_matched <- df_matched %>%
   mutate(
-    AU = gsub(",.*", " et al", AU)
+    AU = gsub(",.*", " et al", AU.y)
   )
 
-
+df_matched$AU.x[is.na(df_matched$AU.x)] <- df_matched$AU[is.na(df_matched$AU.x)]
+df_matched$TI.x[is.na(df_matched$TI.x)] <- df_matched$TI.y[is.na(df_matched$TI.x)]
 
 df_matched <- df_matched %>% 
-  select(AU.x, TI.x, PY.x, DOI, Karlin:rev_rowN) %>% 
-  arrange(PY.x)
+  select(AU.x, DOI, TI.x, PY:indx, reviews) %>% 
+  arrange(PY)
 
 
 
@@ -159,7 +156,7 @@ table(df_matched$this_study, useNA = "always") #check to see numbers match with 
 #first look at reviews
 
 df_matched <- df_matched %>% 
-  gather(key = Review, value = Included, Karlin:this_study) %>% 
+  gather(key = Review, value = Included, Karlin:Abrahamse_, this_study) %>% 
   mutate(Included = factor(Included),
          text = "x")
 
@@ -182,33 +179,35 @@ ggplot(df_matched, aes(x = AU.x, y = Review)) +
   theme(axis.text.x = element_text(angle = 45, vjust = 0.5, hjust=1))
 
 # Just the ones captured by the reviews
-df_matched <- df_matched %>% 
+df_revs <- df_matched %>% 
   filter(reviews == "reviews")
 
+table(df_revs$Included, useNA = "always")
 
-ggplot(df_matched, aes(x = paper_row, y = Review))+
+
+ggplot(df_revs, aes(x = paper_row, y = Review))+
   geom_tile(aes(fill = Included))+
   geom_text(aes(label = text))
 
-ggplot(df_matched, aes(x = rev_rowN, y = Review))+
+ggplot(df_revs, aes(x = rev_rowN, y = Review))+
   geom_tile(aes(fill = Included))+
   geom_text(aes(label = text))
 
-ggplot(df_matched, aes(x = AU.x, y = Review))+
+ggplot(df_revs, aes(x = AU.x, y = Review))+
   geom_tile(aes(fill = Included))+
   geom_text(aes(label = text))
 
-ggplot(df_matched, aes(x = paper_row, y = Review)) +
+ggplot(df_revs, aes(x = paper_row, y = Review)) +
   geom_point(aes(shape = Included, color = Included))+
   scale_shape_manual(values = c(0:2,4))
 
-ggplot(df_matched, aes(x = rev_rowN, y = Review)) +
+ggplot(df_revs, aes(x = rev_rowN, y = Review)) +
   geom_point(aes(shape = Included, color = Included))+
   scale_shape_manual(values = c(0:2,4))+
     xlim(0,147)
 
 
-ggplot(df_matched, aes(x = AU.x, y = Review)) +
+ggplot(df_revs, aes(x = AU.x, y = Review)) +
   geom_point(aes(shape = Included, color = Included))+
   scale_shape_manual(values = c(0:2,4))+
   theme(axis.text.x = element_text(angle = 45, vjust = 0.5, hjust=1))
