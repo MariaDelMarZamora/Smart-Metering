@@ -2,7 +2,6 @@ library(tidyr)
 library(dplyr)
 library(ggplot2)
 library(readxl)
-# Tomorrow: when to create the this_study variable perhaps from beginning with doc
 
 #read in Review contents table
 df <- read_excel("../Reviews Annotated.xlsx", sheet =3) 
@@ -27,26 +26,28 @@ df <- df %>%
   )
 
 # read in query results 
-docs <- read_excel("Data/SM Q2801 R1353.xlsx") 
-colnames(docs) <- c("TI", "PY", "AU", "doc", "di", "tech", "netRel", "techRel", "khat", "java", "kocn", "delm")
-docs <- docs %>% 
-  mutate(
-    DOI = gsub("http://dx.doi.org/", "", docs$di, fixed = T), 
-    maybe = ifelse(khat == "Maybe" & netRel == 0, "maybe",
-                   ifelse(java == "Maybe" & netRel == 0, "maybe",
-                          ifelse(kocn == "Maybe" & netRel == 0, "maybe",
-                                 ifelse(delm == "Maybe" & netRel == 0, "maybe",NA)))),
-    relevant = ifelse(netRel > 0, TRUE, FALSE),
-    query = 2801,
-    this_study = ifelse(relevant == T, "cap_rel",
-                        ifelse(relevant == F & maybe == "maybe", "cap_mayb",
-                               ifelse((relevant == F & is.na(maybe)), "cap_NOT_rel",
-                                      #                       "test")
-                                      "wrong")))
-  ) %>% 
-  select(TI, PY, AU, relevant, DOI, maybe,query, this_study)
+# docs <- read_excel("Data/SM Q2801 R1353.xlsx") 
+# colnames(docs) <- c("TI", "PY", "AU", "doc", "di", "tech", "netRel", "techRel", "khat", "java", "kocn", "delm")
+# docs <- docs %>% 
+#   mutate(
+#     DOI = gsub("http://dx.doi.org/", "", docs$di, fixed = T), 
+#     maybe = ifelse(khat == "Maybe" & netRel == 0, "maybe",
+#                    ifelse(java == "Maybe" & netRel == 0, "maybe",
+#                           ifelse(kocn == "Maybe" & netRel == 0, "maybe",
+#                                  ifelse(delm == "Maybe" & netRel == 0, "maybe",NA)))),
+#     relevant = ifelse(netRel > 0, TRUE, FALSE),
+#     query = 2801,
+#     this_study = ifelse(relevant == T, "cap_rel",
+#                         ifelse(relevant == F & maybe == "maybe", "cap_mayb",
+#                                ifelse((relevant == F & is.na(maybe)), "cap_NOT_rel",
+#                                       #                       "test")
+#                                       "wrong")))
+#   ) %>% 
+#   select(TI, PY, AU, relevant, DOI, maybe,query, this_study)
+# 
+# docs[is.na(docs$maybe) & docs$relevant==F,]$this_study <- "cap_NOT_rel"
 
-docs[is.na(docs$maybe) & docs$relevant==F,]$this_study <- "cap_NOT_rel"
+source("R/Docs processing.R")
 
 table(docs$this_study, useNA = "always") #change below to include this study
 
@@ -87,7 +88,7 @@ df_matched <- left_join(df2, docs, by = "DOI") %>%
 left_join(., docs, by = c("TI.fuzz" = "TI", "PY.x" = "PY")) %>% 
   select(AU.x, AU, DOI.x, DOI.y, TI.x, TI.y, TI.fuzz, PY.x, this_study.x, this_study.y, relevant.x, relevant.y, maybe.x, maybe.y, query.x, query.y, rev_rowN,  Karlin:Abrahamse_, reviews)
 
-# consolidate fields
+# consolidate fields ### if returning to this try dplyr::coalesce (e.g. mutate(query = coalesce(query.x, query.y)))
 df_matched$TI.y[is.na(df_matched$TI.y)] <- df_matched$TI.fuzz[is.na(df_matched$TI.y)] #titles for checking - can drop later and keep TI.x
 df_matched$DOI.x[grep("^NA", df_matched$DOI.x)] <- df_matched$DOI.y[grep("^NA", df_matched$DOI.x)]
 df_matched$this_study.x[is.na(df_matched$this_study.x)] <- df_matched$this_study.y[is.na(df_matched$this_study.x)]
@@ -107,8 +108,10 @@ names(df_matched) <- gsub("\\.x$", "", names(df_matched))
 
 table(df_matched$relevant, useNA = "always")
 
+NotCapt <- df_matched %>% 
+  filter(is.na(this_study))
 
-
+#write.csv2(NotCapt, "Data/Not_captured.csv")
 
 #getting those captured by query but not reviews
 poss_Rel <- docs %>% 
