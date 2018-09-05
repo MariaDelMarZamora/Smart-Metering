@@ -167,9 +167,10 @@ df_matched[is.na(df_matched$Included),]$text <- ""
 
 
 ###### Plots
-ggplot(df_matched, aes(x = paper_row, y = Review))+
+all <- ggplot(df_matched, aes(x = paper_row, y = Review))+
   geom_tile(aes(fill = Included))+
   geom_text(aes(label = text))
+ggsave("plots/all docs.jpg", units = "cm", width = 85, height = 10)
 
 ggplot(df_matched, aes(x = paper_row, y = Review)) +
   geom_point(aes(shape = Included, color = Included))+
@@ -195,6 +196,8 @@ ggplot(df_revs, aes(x = paper_row, y = Review))+
 ggplot(df_revs, aes(x = rev_rowN, y = Review))+
   geom_tile(aes(fill = Included))+
   geom_text(aes(label = text))
+ggsave("plots/review docs.jpg", units = "cm", width = 85, height = 10)
+
 
 ggplot(df_revs, aes(x = AU.x, y = Review))+
   geom_tile(aes(fill = Included))+
