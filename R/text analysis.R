@@ -39,6 +39,19 @@ trimmed <- df %>%
 tidy_papers <- trimmed %>% 
   unnest_tokens(word, text)
 
+cleaned_papers <- tidy_papers %>%
+  anti_join(get_stopwords()) %>% 
+  filter(word != 'na') %>% 
+  count(word, sort = TRUE) 
+
+write.csv(cleaned_papers[1:100,], file = "Queries/freq_words NC set.csv")
+
+cleaned_papers%>% 
+  with(wordcloud(word, n, max.words = 150))
+ggsave(file = "plots/all_tt.jpg")
+
+
+
 #quanteda
 AbstractCorpus <- corpus(df$wosarticle__ab, docnames = df$wosarticle__ti, df) #
 
@@ -46,11 +59,14 @@ Abstractdfm <- dfm(AbstractCorpus, stem = T, remove = stopwords("english"), remo
 textplot_wordcloud(Abstractdfm, random_order = T,
                    color = rev(RColorBrewer::brewer.pal(10, "RdBu")),
                    max_words = 200)
+ggsave(file = 'plots/ab_q wordc.jpg')
 
 TIcorpus <- corpus(df$wosarticle__ti, docnames = df$wosarticle__ti, df)
 TIdfm <- dfm(TIcorpus, stem = T, remove = stopwords('english'), remove_punct = T)
 textplot_wordcloud(TIdfm, random_order = T,
                    color = rev(RColorBrewer::brewer.pal(10, "RdBu")))
+ggsave(file = 'plots/ti_q wordc.jpg')
+
 
 df <- df %>% 
   mutate(
@@ -58,6 +74,8 @@ df <- df %>%
   )
 
 KWCorpus <- corpus(df$keywords, docnames = df$wosarticle__ti, df)
-KWdfm <- dfm(KWCorpus, stem = T, remove = stopwords('english'), remove_punct = T)
+KWdfm <- dfm(KWCorpus, stem = T, remove = c('na',stopwords('english')), remove_punct = T)
 textplot_wordcloud(KWdfm, random_order = T,
                    color = rev(RColorBrewer::brewer.pal(10, "RdBu")))
+ggsave(file = 'plots/kw_q wordc.jpg')
+
