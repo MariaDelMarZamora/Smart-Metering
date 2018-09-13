@@ -3,7 +3,7 @@ library(readxl)
 # library(tm)
 library(SnowballC)
 library(RCurl)
-#library(quanteda)
+library(quanteda)
 library(tidyr)
 library(dplyr)
 library(tidytext)
@@ -78,4 +78,5 @@ KWdfm <- dfm(KWCorpus, stem = T, remove = c('na',stopwords('english')), remove_p
 textplot_wordcloud(KWdfm, random_order = T,
                    color = rev(RColorBrewer::brewer.pal(10, "RdBu")))
 ggsave(file = 'plots/kw_q wordc.jpg')
+
 
